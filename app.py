@@ -350,8 +350,8 @@ def create_keyword_graph(results):
             
     pos = nx.spring_layout(G, k=0.8, iterations=50, seed=42)
     
-    fig, ax = plt.subplots(figsize=(16, 10))
-    nx.draw(G, pos, with_labels=True, node_color=color_map, node_size=2300, font_size=11, font_color='white', width=0.8, edge_color='grey', ax=ax)
+    fig, ax = plt.subplots(figsize=(20, 1))
+    nx.draw(G, pos, with_labels=True, node_color=color_map, node_size=2500, font_size=11, font_color='white', width=0.8, edge_color='grey', ax=ax)
     
     ax.set_facecolor('#0E1117'); fig.set_facecolor('#0E1117'); plt.margins(0.05)
     return fig
