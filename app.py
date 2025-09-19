@@ -12,6 +12,12 @@ import nltk
 from sklearn.feature_extraction.text import TfidfVectorizer
 from langdetect import detect, LangDetectException
 
+# Import tambahan untuk Selenium
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.options import Options
+
 st.set_page_config(layout="wide", page_title="Analisis Framing Berita Otomatis")
 
 # Struktur data untuk menyimpan semua hasil analisis dari AI
@@ -37,7 +43,7 @@ def display_ui_header():
     # judul dan deskripsi aplikasi
     st.title("📰 News Framing Analysis")
     st.markdown("""
-        Aplikasi ini menggunakan Model **Gemini 2.5 Flash** untuk menganalisis dan membandingkan bagaimana beberapa media online **membingkai (framing)** sebuah isu berdasarkan teori Robert Entman (1993), yaitu:
+        Aplikasi ini menggunakan Model **Gemini 1.5 Flash** untuk menganalisis dan membandingkan bagaimana beberapa media online **membingkai (framing)** sebuah isu berdasarkan teori Robert Entman (1993), yaitu:
         - **Definisi Masalah (Problem Definition):** Apa yang dianggap sebagai masalah utama?
         - **Penyebab Masalah (Causal Interpretation):** Siapa atau apa yang dianggap sebagai penyebabnya?
         - **Penilaian Moral (Moral Evaluation):** Siapa 'pahlawan' dan 'penjahat' dalam narasi ini?
@@ -47,58 +53,59 @@ def display_ui_header():
         Hasilnya akan disajikan dalam beberapa bagian analisis komparatif.
     """)
 
-# DATA COLLECTION & PREPARATION (BAGIAN INI TELAH DIPERBARUI)
-@st.cache_data(ttl=3600, show_spinner="Mengekstrak teks dari URL...")
+# DATA COLLECTION & PREPARATION (DIGANTI DENGAN SELENIUM)
+@st.cache_data(ttl=3600, show_spinner="Mengekstrak teks dari URL (menggunakan browser otomatis)...")
 def scrape_article(url):
-    # Mengambil judul dan teks artikel dari URL
     try:
         if not url.startswith(('http://', 'https://')):
             url = 'https://' + url
-        
-        # HEADERS: Kunci untuk membuatnya terlihat seperti browser asli
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.9,id;q=0.8', # Menambahkan bahasa Indonesia
-            'Connection': 'keep-alive',
-            'Referer': 'https://www.google.com/' # Pura-pura datang dari Google
-        }
 
-        # Gunakan requests.get() yang lebih modern
-        response = requests.get(url.strip(), headers=headers, timeout=20)
-        response.raise_for_status() # Otomatis error jika status code bukan 200 (OK)
+        # --- Setup Selenium ---
+        options = Options()
+        options.add_argument("--headless") # Berjalan tanpa membuka UI browser
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+        options.add_argument("--disable-gpu")
         
-        content = response.content
+        # Menginstall dan setup driver Chrome secara otomatis
+        service = Service(ChromeDriverManager().install())
+        driver = webdriver.Chrome(service=service, options=options)
+        
+        driver.get(url)
+        
+        # Beri waktu beberapa detik agar JavaScript selesai memuat semua konten
+        time.sleep(3) 
+        
+        # Ambil HTML setelah semua konten dimuat
+        content = driver.page_source
+        driver.quit() # Penting: Selalu tutup browser setelah selesai
+        
+        # --- Lanjutkan dengan proses parsing seperti biasa ---
         parsing = bs(content, 'lxml')
         
         title_tag = parsing.find(['h1', 'post-title', 'entry-title'])
         title = title_tag.get_text(strip=True) if title_tag else "Judul Tidak Ditemukan"
-        
+
         selectors = [
             'article', 'div[class*="article-body"]', 'div[class*="post-content"]',
             'div[class*="main-content"]', 'div[class*="story-body"]', 'div[class*="rich-text-article-body"]',
             'div[id*="article-body"]',
         ]
-        
         article_container = next((parsing.select_one(s) for s in selectors if parsing.select_one(s)), None)
         search_area = article_container if article_container else parsing
-        
         paragraphs = search_area.find_all('p')
         article_text = " ".join([p.get_text(strip=True) for p in paragraphs if len(p.get_text(strip=True).split()) > 10])
-        
-        if article_container and (not article_text.strip() or len(article_text.split()) < 50):
-              paragraphs = parsing.find_all('p')
-              article_text = " ".join([p.get_text(strip=True) for p in paragraphs if len(p.get_text(strip=True).split()) > 10])
 
         if not article_text.strip() or len(article_text.split()) < 50:
-            raise ValueError("Teks artikel tidak sesuai atau tidak dapat ditemukan.")
+            raise ValueError("Teks artikel tidak sesuai atau tidak dapat ditemukan setelah render JavaScript.")
             
         return title, article_text, None
-        
-    except requests.exceptions.HTTPError as e:
-        return "Gagal Ekstraksi", "", f"Website menolak akses. Status Code: {e.response.status_code}"
+
     except Exception as e:
-        return "Gagal Ekstraksi", "", str(e)
+        # Menambahkan 'driver' di pesan error untuk menandakan sumbernya
+        if 'driver' in locals() and driver:
+            driver.quit()
+        return "Gagal Ekstraksi (Selenium)", "", str(e)
 
 
 
@@ -328,14 +335,14 @@ def create_keyword_graph(results):
                 if kw in ks:
                     G.add_edge(source_nodes[i], kw)
             
-    unique_colors = ['#EF553B', "#2A35D1", "#9E07FD"]
+    unique_colors = ['#EF553B', '#636EFA', "#9E07FD"]
     color_map = []
     for node in G:
         node_type = G.nodes[node]['type']
         if node_type == 'source':
-            color_map.append('orange')
+            color_map.append('gold')
         elif node_type == 'common':
-            color_map.append('green')
+            color_map.append('lightgreen')
         elif node_type.startswith('unique_'):
             idx = int(node_type.split('_')[-1])
             color_map.append(unique_colors[idx % len(unique_colors)])
