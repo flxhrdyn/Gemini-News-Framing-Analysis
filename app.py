@@ -94,11 +94,10 @@ def scrape_article(url):
             
         return title, article_text, None
         
-    # Ganti blok except di fungsi scrape_article
     except requests.exceptions.HTTPError as e:
-        # Ini akan menunjukkan kode error seperti 403 (Forbidden) atau 429 (Too Many Requests)
+        # Menunjukkan kode error seperti 403 (Forbidden) atau 429 (Too Many Requests)
         error_message = f"Website menolak akses. Status Code: {e.response.status_code} untuk URL: {e.request.url}"
-        st.error(f"DEBUG: {error_message}") # Tambahkan ini untuk debugging di UI
+        st.error(f"DEBUG: {error_message}")
         return "Gagal Ekstraksi", "", error_message
     except requests.exceptions.RequestException as e:
         # Menangkap semua error terkait koneksi/timeout
@@ -106,9 +105,9 @@ def scrape_article(url):
         st.error(f"DEBUG: {error_message}") # Tambahkan ini untuk debugging di UI
         return "Gagal Ekstraksi", "", error_message
     except Exception as e:
-        # Menangkap error lain yang mungkin terjadi saat parsing
+        # Menangkap error mungkin terjadi saat parsing
         error_message = f"Terjadi kesalahan tak terduga saat scraping. Tipe Error: {type(e).__name__}. Detail: {str(e)}"
-        st.error(f"DEBUG: {error_message}") # Tambahkan ini untuk debugging di UI
+        st.error(f"DEBUG: {error_message}")
         return "Gagal Ekstraksi", "", error_message
 
 # MODELING
