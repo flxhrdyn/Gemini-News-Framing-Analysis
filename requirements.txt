@@ -1,6 +1,8 @@
 streamlit
-beautifulsoup4
 requests
+urllib3
+beautifulsoup4
+lxml
 sentence-transformers
 networkx
 matplotlib
