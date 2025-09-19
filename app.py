@@ -261,8 +261,7 @@ def display_sentiment_analysis(results):
 def generate_comparative_summary(results):
     # Membuat ringkasan analisis dengan Gemini
     valid_results = [res for res in results if res.analysis_results and not res.error]
-    if len(valid_results) < 2:
-        return "Analisis komparatif membutuhkan setidaknya dua artikel yang berhasil diproses."
+    if len(valid_results) < 2: return "Analisis komparatif membutuhkan setidaknya dua artikel yang berhasil diproses."
 
     context = ""
     for i, res in enumerate(valid_results):
@@ -274,13 +273,8 @@ def generate_comparative_summary(results):
 
     api_key = st.secrets["GEMINI_API_KEY"]
     api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
-
-    # --- PERUBAHAN DI SINI ---
-    # Buat string yang berisi nama sumber dan URL lengkap untuk dimasukkan ke dalam prompt.
-    summary_points = "\n".join(
-        [f"* **Sumber [{res.url.split('/')[2]}]({res.url}):** [Kesimpulan spesifik.]" for res in valid_results]
-    )
-
+    
+    summary_points = "\n".join([f"* **Sumber {res.url.split('/')[2]}:** [Kesimpulan spesifik.]" for res in valid_results])
     user_prompt = f"""
     Anda adalah seorang analis media. Berdasarkan data framing berikut, buatlah analisis komparatif dalam Bahasa Indonesia tanpa kalimat pembuka.
     Gunakan format markdown ketat ini:
@@ -290,14 +284,10 @@ def generate_comparative_summary(results):
     * [Poin 1 perbedaan mencolok...]
     **3. Kesimpulan Framing Akhir per Media:**
     [Satu kalimat pengantar singkat.]
-    {summary_points} 
-    
-    PENTING: Pastikan untuk mengisi bagian '[Kesimpulan spesifik.]' dan menjaga format hyperlink Markdown yang sudah ada.
-
+    {summary_points}
     Data analisis:
     {context}
     """
-    
     payload = {"contents": [{"parts": [{"text": user_prompt}]}]}
     try:
         response = requests.post(api_url, json=payload, headers={'Content-Type': 'application/json'})
