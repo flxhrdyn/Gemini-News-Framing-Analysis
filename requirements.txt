@@ -1,0 +1,9 @@
+streamlit
+beautifulsoup4
+requests
+sentence-transformers
+networkx
+matplotlib
+nltk
+scikit-learn
+langdetect
