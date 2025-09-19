@@ -1,9 +1,8 @@
 import streamlit as st
-import bs4 as bs
-import urllib.request
+import requests
+from bs4 import BeautifulSoup as bs
 import re
 import json
-import requests
 import time
 from collections import namedtuple, Counter
 from sentence_transformers import SentenceTransformer, util
@@ -32,7 +31,7 @@ def download_nltk_resources():
         nltk.download('stopwords', quiet=True)
 download_nltk_resources()
 
-#
+
 # BUSINESS UNDERSTANDING
 def display_ui_header():
     # judul dan deskripsi aplikasi
@@ -48,18 +47,29 @@ def display_ui_header():
         Hasilnya akan disajikan dalam beberapa bagian analisis komparatif.
     """)
 
-# DATA COLLECTION & PREPARATION
+# DATA COLLECTION & PREPARATION (BAGIAN INI TELAH DIPERBARUI)
 @st.cache_data(ttl=3600, show_spinner="Mengekstrak teks dari URL...")
 def scrape_article(url):
     # Mengambil judul dan teks artikel dari URL
     try:
         if not url.startswith(('http://', 'https://')):
             url = 'https://' + url
-        req = urllib.request.Request(url.strip(), headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'})
-        with urllib.request.urlopen(req, timeout=20) as response:
-            content = response.read()
         
-        parsing = bs.BeautifulSoup(content, 'lxml')
+        # HEADERS: Kunci untuk membuatnya terlihat seperti browser asli
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9,id;q=0.8', # Menambahkan bahasa Indonesia
+            'Connection': 'keep-alive',
+            'Referer': 'https://www.google.com/' # Pura-pura datang dari Google
+        }
+
+        # Gunakan requests.get() yang lebih modern
+        response = requests.get(url.strip(), headers=headers, timeout=20)
+        response.raise_for_status() # Otomatis error jika status code bukan 200 (OK)
+        
+        content = response.content
+        parsing = bs(content, 'lxml')
         
         title_tag = parsing.find(['h1', 'post-title', 'entry-title'])
         title = title_tag.get_text(strip=True) if title_tag else "Judul Tidak Ditemukan"
@@ -77,13 +87,16 @@ def scrape_article(url):
         article_text = " ".join([p.get_text(strip=True) for p in paragraphs if len(p.get_text(strip=True).split()) > 10])
         
         if article_container and (not article_text.strip() or len(article_text.split()) < 50):
-             paragraphs = parsing.find_all('p')
-             article_text = " ".join([p.get_text(strip=True) for p in paragraphs if len(p.get_text(strip=True).split()) > 10])
+              paragraphs = parsing.find_all('p')
+              article_text = " ".join([p.get_text(strip=True) for p in paragraphs if len(p.get_text(strip=True).split()) > 10])
 
         if not article_text.strip() or len(article_text.split()) < 50:
             raise ValueError("Teks artikel tidak sesuai atau tidak dapat ditemukan.")
             
         return title, article_text, None
+        
+    except requests.exceptions.HTTPError as e:
+        return "Gagal Ekstraksi", "", f"Website menolak akses. Status Code: {e.response.status_code}"
     except Exception as e:
         return "Gagal Ekstraksi", "", str(e)
 
@@ -94,7 +107,7 @@ def scrape_article(url):
 def comprehensive_analysis_with_llm(article_text):
     # Mengirim teks artikel ke Gemini API
     api_key = st.secrets["GEMINI_API_KEY"]
-    api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key={api_key}"
+    api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={api_key}"
 
     system_prompt = """
     Anda adalah seorang analis media yang ahli. Tugas Anda adalah menganalisis teks berita yang diberikan secara komprehensif.
@@ -249,7 +262,7 @@ def generate_comparative_summary(results):
         context += "\n"
 
     api_key = st.secrets["GEMINI_API_KEY"]
-    api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key={api_key}"
+    api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={api_key}"
     
     summary_points = "\n".join([f"* **Sumber {res.url.split('/')[2]}:** [Kesimpulan spesifik.]" for res in valid_results])
     user_prompt = f"""
@@ -315,14 +328,14 @@ def create_keyword_graph(results):
                 if kw in ks:
                     G.add_edge(source_nodes[i], kw)
             
-    unique_colors = ['#EF553B', '#636EFA', "#9E07FD"]
+    unique_colors = ['#EF553B', "#2A35D1", "#9E07FD"]
     color_map = []
     for node in G:
         node_type = G.nodes[node]['type']
         if node_type == 'source':
-            color_map.append('gold')
+            color_map.append('orange')
         elif node_type == 'common':
-            color_map.append('lightgreen')
+            color_map.append('green')
         elif node_type.startswith('unique_'):
             idx = int(node_type.split('_')[-1])
             color_map.append(unique_colors[idx % len(unique_colors)])
@@ -330,7 +343,7 @@ def create_keyword_graph(results):
     pos = nx.spring_layout(G, k=0.8, iterations=50, seed=42)
     
     fig, ax = plt.subplots(figsize=(14, 10))
-    nx.draw(G, pos, with_labels=True, node_color=color_map, node_size=2500, font_size=11, width=0.8, edge_color='grey', ax=ax)
+    nx.draw(G, pos, with_labels=True, node_color=color_map, node_size=2500, font_size=11, font_color='white', width=0.8, edge_color='grey', ax=ax)
     
     ax.set_facecolor('#0E1117'); fig.set_facecolor('#0E1117'); plt.margins(0.05)
     return fig
