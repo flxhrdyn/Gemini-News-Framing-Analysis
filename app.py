@@ -401,7 +401,7 @@ def main():
             display_actor_analysis(all_results)
             display_sentiment_analysis(all_results)
             st.header("🔑 Graf Kata Kunci", divider='gray')
-            st.markdown("Graf ini menunjukkan **kata kunci utama** dan hubungannya. <span style='color:gold;'>●</span> Berita, <span style='color:lightgreen;'>●</span> Kata Kunci Bersama. Kata Kunci Unik diberi warna berbeda (<span style='color:#EF553B;'>●</span>, <span style='color:#636EFA;'>●</span>, <span style='color:#00CC96;'>●</span>) untuk setiap berita.", unsafe_allow_html=True)
+            st.markdown("Graf ini menunjukkan **kata kunci utama** dan hubungannya. <span style='color:gold;'>●</span> Berita, <span style='color:green;'>●</span> Kata Kunci Bersama. Kata Kunci Unik diberi warna berbeda (<span style='color:#EF553B;'>●</span>, <span style='color:#2A35D1;'>●</span>, <span style='color:#9E07FD;'>●</span>) untuk setiap berita.", unsafe_allow_html=True)
             keyword_graph_fig = create_keyword_graph(all_results)
             if keyword_graph_fig:
                 st.pyplot(keyword_graph_fig)
