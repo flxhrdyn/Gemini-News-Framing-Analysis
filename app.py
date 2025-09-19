@@ -273,7 +273,7 @@ def generate_comparative_summary(results):
         context += "\n"
 
     api_key = st.secrets["GEMINI_API_KEY"]
-    api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-latest:generateContent?key={api_key}"
+    api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
 
     # --- PERUBAHAN DI SINI ---
     # Buat string yang berisi nama sumber dan URL lengkap untuk dimasukkan ke dalam prompt.
