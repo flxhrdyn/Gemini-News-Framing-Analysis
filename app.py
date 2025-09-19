@@ -38,7 +38,7 @@ def display_ui_header():
     # judul dan deskripsi aplikasi
     st.title("📰 News Framing Analysis")
     st.markdown("""
-        Aplikasi ini menggunakan Model [**Gemini 2.5 Flash**](https://deepmind.google/models/gemini/flash/) untuk menganalisis dan membandingkan bagaimana beberapa media online **membingkai (framing)** sebuah isu berdasarkan teori Robert Entman (1993), yaitu:
+        Aplikasi ini menggunakan Model [**Gemini 2.5 Flash**](https://deepmind.google/models/gemini/flash/) untuk menganalisis dan membandingkan bagaimana beberapa media online **membingkai (framing)** sebuah isu, berdasarkan teori Robert Entman (1993), yaitu:
         - **Definisi Masalah (Problem Definition):** Apa yang dianggap sebagai masalah utama?
         - **Penyebab Masalah (Causal Interpretation):** Siapa atau apa yang dianggap sebagai penyebabnya?
         - **Penilaian Moral (Moral Evaluation):** Siapa 'pahlawan' dan 'penjahat' dalam narasi ini?
