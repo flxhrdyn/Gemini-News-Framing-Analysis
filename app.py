@@ -117,7 +117,7 @@ def scrape_article(url):
 def comprehensive_analysis_with_llm(article_text):
     # Mengirim teks artikel ke Gemini API
     api_key = st.secrets["GEMINI_API_KEY"]
-    api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={api_key}"
+    api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}"
 
     system_prompt = """
     Anda adalah seorang analis media yang ahli. Tugas Anda adalah menganalisis teks berita yang diberikan secara komprehensif.
@@ -272,7 +272,7 @@ def generate_comparative_summary(results):
         context += "\n"
 
     api_key = st.secrets["GEMINI_API_KEY"]
-    api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={api_key}"
+    api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}"
     
     summary_points = "\n".join([f"* **Sumber {res.url.split('/')[2]}:** [Kesimpulan spesifik.]" for res in valid_results])
     user_prompt = f"""
