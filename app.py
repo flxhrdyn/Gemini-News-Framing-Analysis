@@ -1,12 +1,10 @@
 import streamlit as st
 import requests
-from urllib3.util.retry import Retry
 from bs4 import BeautifulSoup as bs
 import re
 import json
 import time
 from collections import namedtuple, Counter
-from sentence_transformers import SentenceTransformer, util
 import networkx as nx
 import matplotlib.pyplot as plt
 import nltk
@@ -19,13 +17,8 @@ st.set_page_config(layout="wide", page_title="Analisis Framing Berita Otomatis")
 ArticleAnalysis = namedtuple('ArticleAnalysis', ['url', 'title', 'text', 'analysis_results', 'error', 'lang'])
 
 @st.cache_resource
-def load_sentence_model():
-    # load model Sentence Transformer
-    return SentenceTransformer('all-MiniLM-L6-v2')
-
-@st.cache_resource
 def download_nltk_resources():
-    """Mengunduh resource NLTK yang diperlukan."""
+    # Mengunduh resource stopwords dari NLTK
     try:
         nltk.data.find('corpora/stopwords')
     except LookupError:
@@ -104,7 +97,7 @@ def scrape_article(url):
     except requests.exceptions.RequestException as e:
         # Menangkap semua error terkait koneksi/timeout
         error_message = f"Gagal terhubung ke URL. Tipe Error: {type(e).__name__} pada URL: {e.request.url}"
-        st.error(f"DEBUG: {error_message}") # Tambahkan ini untuk debugging di UI
+        st.error(f"DEBUG: {error_message}")
         return "Gagal Ekstraksi", "", error_message
     except Exception as e:
         # Menangkap error mungkin terjadi saat parsing
@@ -149,7 +142,6 @@ def comprehensive_analysis_with_llm(article_text):
     max_retries = 3
     for attempt in range(max_retries):
         try:
-            # Batas waktu ditingkatkan menjadi 60 detik
             response = requests.post(api_url, json=payload, headers={'Content-Type': 'application/json'}, timeout=60)
             response.raise_for_status()
             
@@ -173,7 +165,7 @@ def comprehensive_analysis_with_llm(article_text):
 
 
 def run_full_analysis(url):
-    # Analysis untuk satu URL, termasuk deteksi bahasa
+    # Analysis untuk satu URL berita dan deteksi bahasa berita
     title, text, error = scrape_article(url)
     lang = 'indonesian'
     if error:
@@ -297,7 +289,7 @@ def generate_comparative_summary(results):
         return f"Gagal menghasilkan ringkasan komparatif: {e}"
 
 def extract_keywords(text, lang='indonesian', top_n=15):
-    # Mengekstrak kata kunci menggunakan TF-IDF
+    # Mengekstrak kata kunci berita menggunakan TF-IDF
     text = re.sub(r'\d+', '', text).lower()
     stop_words = list(nltk.corpus.stopwords.words(lang)) if lang in nltk.corpus.stopwords.fileids() else []
     custom_stopwords = ['yakni', 'yaitu', 'tersebut', 'kata', 'ujar', 'jelas', 'ungkap', 'menurut', 'antara', 'pihak', 'namun', 'sementara', 'saat', 'cnn', 'com', 'detik', 'kompas', 'said', 'also', 'would', 'could']
@@ -358,7 +350,7 @@ def create_keyword_graph(results):
     ax.set_facecolor('#0E1117'); fig.set_facecolor('#0E1117'); plt.margins(0.05)
     return fig
 
-# DEPLOYMENT
+# DEPLOYMENT (MAIN FUNCTION APLIKASI)
 def main():
     display_ui_header()
     
